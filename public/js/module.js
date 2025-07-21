@@ -481,9 +481,21 @@
         },
 
         onRenderedContainer: function (event) {
-            // in module configuration we don't have a map, so return peacefully
-            if (typeof id === 'undefined') {
-                return;
+            let attrs = event.currentTarget.querySelector('.icinga-module.module-map > .content > #map-script').dataset;
+            attrs = JSON.parse(attrs.mapAttrs);
+
+            for (const [key, value] of Object.entries(attrs)) {
+                if (typeof value === 'object') {
+                    for (const [key2, value2] of Object.entries(value)) {
+                        if (typeof window[key] === 'undefined') {
+                            window[key] = {};
+                        }
+                        window[key][key2] = value2;
+                    }
+                    
+                } else {
+                    window[key] = value;
+                }
             }
 
             cache[id] = {};
@@ -492,6 +504,11 @@
                     worldCopyJump: true
                 }
             );
+
+            // in module configuration we don't have a map, so return peacefully
+            if (typeof id === 'undefined') {
+                return;
+            }
 
             var osm = L.tileLayer(tile_url, {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
