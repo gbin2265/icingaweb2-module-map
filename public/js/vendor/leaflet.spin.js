@@ -24,7 +24,7 @@
             if (!!state) {
                 // start spinning !
                 if (!this._spinner) {
-                    this._spinner = new Spinner(options)
+                    this._spinner = new Spin.Spinner(options)
                         .spin(this._container);
                     this._spinning = 0;
                 }
