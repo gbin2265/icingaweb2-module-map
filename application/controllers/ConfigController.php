@@ -4,39 +4,45 @@ namespace Icinga\Module\Map\Controllers;
 
 use Icinga\Module\Map\Forms\Config\GeneralConfigForm;
 use Icinga\Module\Map\Forms\Config\DirectorConfigForm;
-use Icinga\Web\Controller;
+use Icinga\Web\Widget\Tabs;
+use ipl\Html\HtmlString;
+use ipl\Web\Compat\CompatController;
 
-class ConfigController extends Controller
+class ConfigController extends CompatController
 {
     public function init()
     {
 
     }
 
-    public function indexAction()
+    public function indexAction(): void
     {
         $this->assertPermission('config/modules');
         $form = new GeneralConfigForm();
         $form->setIniConfig($this->Config());
         $form->handleRequest();
 
-        $this->view->form = $form;
-        $this->view->tabs = $this->Module()->getConfigTabs()->activate('config');
+        $this->addContent(HtmlString::create($form));
+
+        $this->mergeTabs($this->Module()->getConfigTabs());
+        $this->getTabs()->activate('config');
     }
 
-    public function directorAction()
+    public function directorAction(): void
     {
         $this->assertPermission('map/director/configuration');
         $form = new DirectorConfigForm();
         $form->setIniConfig($this->Config());
         $form->handleRequest();
 
-        $this->view->form = $form;
-        $this->view->tabs = $this->Module()->getConfigTabs()->activate('director');
+        $this->addContent(HtmlString::create($form));
+
+        $this->mergeTabs($this->Module()->getConfigTabs());
+        $this->getTabs()->activate('director');
     }
 
 
-    public function fetchAction()
+    public function fetchAction(): void
     {
         $type = strtolower($this->params->shift('type', ""));
         $moduleConfig = $this->Config();
@@ -81,6 +87,20 @@ class ConfigController extends Controller
         print json_encode($config);
         exit();
 
+    }
+
+    /**
+     * Merge given tabs with controller tabs
+     *
+     * @param Tabs $tabs
+     *
+     * @return void
+     */
+    protected function mergeTabs(Tabs $tabs): void
+    {
+        foreach ($tabs->getTabs() as $tab) {
+            $this->getTabs()->add($tab->getName(), $tab);
+        }
     }
 }
 
