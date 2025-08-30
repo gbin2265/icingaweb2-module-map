@@ -307,9 +307,8 @@ class DataController extends MapController
 
                 $host['coordinates'] = explode(",", $host['coordinates']);
 
-                if ( $row->hosts_down_unhandled > 0 ) { $host['host_problem'] = 1; $host['host_state'] = 1; } else { $host['host_problem'] = 0; $host['host_state'] = 0; };
-                if ( $row->hosts_down_handled > 0 )   { $host['host_in_downtime'] = 1; } else { $host['host_in_downtime'] = 0; };
-                if ( $row->hosts_down_handled > 0 )   { $host['hosts_down_handled'] = 1; } else { $host['hosts_down_handled'] = 0; };
+                if ( $row->hosts_down_unhandled > 0 ) { $host['host_state'] = 1; } else { $host['host_state'] = 0; };
+                if ( $row->hosts_down_handled > 0 )   { $host['host_in_downtime'] = 1; $host['hosts_down_handled'] = 1; } else { $host['host_in_downtime'] = 0; $host['hosts_down_handled'] = 0; };
                 if ( $row->hosts_down_unhandled > 0 ) { $host['hosts_down_unhandled'] = 1; } else { $host['hosts_down_unhandled'] = 0; };
                 if ( $row->hosts_pending > 0 )        { $host['hosts_pending'] = 1; } else { $host['hosts_pending'] = 0; };
                 if ( $row->hosts_total > 0 )          { $host['hosts_total'] = 1; } else { $host['hosts_total'] = 0; };
@@ -325,16 +324,18 @@ class DataController extends MapController
                 $host['services_warning_handled'] = $row->services_warning_handled;
                 $host['services_warning_unhandled'] = $row->services_warning_unhandled;
 
-		        if ( $row->hosts_down_unhandled > 0) {
+		        if ( $row->hosts_down_unhandled > 0 ) {
 			        $host['host_state_service'] = 2;
+		        } elseif ( $row->hosts_down_handled > 0 ) {
+			        $host['host_state_service'] = 2;
+		        } elseif ( $row->hosts_pending > 0 ) {
+			        $host['host_state_service'] = 99;
 		        } elseif ( $row->services_critical_unhandled > 0 ) {
 			        $host['host_state_service'] = 2;
 		        } elseif ( $row->services_warning_unhandled > 0 ) {
 			        $host['host_state_service'] = 1;
 		        } elseif ( $row->services_unknown_unhandled > 0 ) {
 			        $host['host_state_service'] = 3;
-		        } elseif ( $row->hosts_pending > 0 ) {
-			        $host['host_state_service'] = 99;
 		        } elseif ( $row->services_pending > 0 ) {
 			        $host['host_state_service'] = 99;
 		        } else {
