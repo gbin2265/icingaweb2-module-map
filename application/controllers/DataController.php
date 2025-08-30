@@ -53,7 +53,9 @@ class DataController extends MapController
             if ($userPreferences->has("map")) {
                 $stateType = $userPreferences->getValue("map", "stateType", $stateType);
             }
-            $objectType = strtolower($this->params->shift('objectType', 'all'));
+            $objectType = strtolower($this->params->shift('objectType',
+                $config->get('map', 'objectType', 'all')
+            ));
 
             $this->onlyProblems = (bool)$this->params->shift('problems', false);
 
@@ -256,20 +258,20 @@ class DataController extends MapController
                 'host.display_name',
                 'vars.geolocation',
                 'vars.map_icon',
-                'hosts_down_handled'          => new Expression('SUM(CASE WHEN host_state.soft_state = 1 AND (host_state.is_handled = \'y\' OR host_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'hosts_down_unhandled'        => new Expression('SUM(CASE WHEN host_state.soft_state = 1 AND host_state.is_handled = \'n\' AND host_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
-                'hosts_pending'               => new Expression('SUM(CASE WHEN host_state.soft_state = 99 THEN 1 ELSE 0 END)'),
+                'hosts_down_handled'          => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 1 AND (host_state.is_handled = \'y\' OR host_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
+                'hosts_down_unhandled'        => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 1 AND host_state.is_handled = \'n\' AND host_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
+                'hosts_pending'               => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 99 THEN 1 ELSE 0 END)'),
                 'hosts_total'                 => new Expression('SUM(CASE WHEN host.id IS NOT NULL THEN 1 ELSE 0 END)'),
-                'hosts_up'                    => new Expression('SUM(CASE WHEN host_state.soft_state = 0 THEN 1 ELSE 0 END)'),
-                'services_critical_handled'   => new Expression('SUM(CASE WHEN host_service_state.soft_state = 2 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'services_critical_unhandled' => new Expression('SUM(CASE WHEN host_service_state.soft_state = 2 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
-                'services_ok'                 => new Expression('SUM(CASE WHEN host_service_state.soft_state = 0 THEN 1 ELSE 0 END)'),
-                'services_pending'            => new Expression('SUM(CASE WHEN host_service_state.soft_state = 99 THEN 1 ELSE 0 END)'),
+                'hosts_up'                    => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 0 THEN 1 ELSE 0 END)'),
+                'services_critical_handled'   => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 2 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
+                'services_critical_unhandled' => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 2 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
+                'services_ok'                 => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 0 THEN 1 ELSE 0 END)'),
+                'services_pending'            => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 99 THEN 1 ELSE 0 END)'),
                 'services_total'              => new Expression('SUM(CASE WHEN service_id IS NOT NULL THEN 1 ELSE 0 END)'),
-                'services_unknown_handled'    => new Expression('SUM(CASE WHEN host_service_state.soft_state = 3 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'services_unknown_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.soft_state = 3 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
-                'services_warning_handled'    => new Expression('SUM(CASE WHEN host_service_state.soft_state = 1 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'services_warning_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.soft_state = 1 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)')
+                'services_unknown_handled'    => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 3 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
+                'services_unknown_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 3 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
+                'services_warning_handled'    => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 1 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
+                'services_warning_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 1 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)')
 	    ])
             ->filter(IplFilter::like('host.vars.geolocation', '*'))
             ->setResultSetClass(VolatileStateResults::class);
