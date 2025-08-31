@@ -133,7 +133,7 @@ class GeneralConfigForm extends ConfigForm
                     'all' => 'all',
                     'host' => 'host',
                     'service' => 'service',
-                    'icingadb' => 'icingadb'
+                    'icingadbweb' => 'icingadbweb'
                 ),
             )
         );

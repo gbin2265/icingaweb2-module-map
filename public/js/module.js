@@ -430,6 +430,7 @@
                             hostLink = '/icingadb/host?name=' + data['host_name'];
                         }
 
+                        // addIcingadbWebToPoints
                         if (data['hosts_total'] == 1) {
 
                             var info = '<div id="layout"><div class="main">';

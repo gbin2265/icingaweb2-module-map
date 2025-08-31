@@ -77,8 +77,8 @@ class DataController extends MapController
                 }
             }
 
-            if (in_array($objectType, ['icingadb']) && $this->isUsingIcingadb) {                
-                $this->addIcingadbIcingadbToPoints();
+            if (in_array($objectType, ['icingadbweb']) && $this->isUsingIcingadb) {                
+                $this->addIcingadbWebToPoints();
             } else {           
                 if (in_array($objectType, ['all', 'host'])) {
                     if ($this->isUsingIcingadb) {
@@ -248,7 +248,7 @@ class DataController extends MapController
         }
     }
 
-    private function addIcingadbIcingadbToPoints()
+    private function addIcingadbWebToPoints()
     {
         $hostQuery = Host::on($this->icingadbUtils->getDb())
             ->with(['host.state', 'service', 'service.state'])
