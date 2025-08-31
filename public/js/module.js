@@ -27,6 +27,14 @@
                 return "red";
             case 3:
                 return "purple";
+            case 10:
+                return "lightgreen";
+            case 11:
+                return "beige";
+            case 12:
+                return "lightred";
+            case 13:
+                return "pink";
             default:
                 return "blue";
         }
@@ -398,6 +406,7 @@
 
 
                         worstState = getWorstState(states);
+                        worstStateHandled = 0;
 
                         var marker_icon = (type === 'hosts' ? 'host' : 'service');
                         if (data['icon']) {
@@ -433,10 +442,12 @@
                                 downack = '<i class="icon fa-check fa"></i>';
                                 downackhandled = 'handled';
                                 marker_icon = 'check';
+                                worstStateHandled = 10;
                             } else if ( data['hosts_in_downtime'] > 0 ) {
                                 downack = '<i class="icon fa-plug fa"></i>';
                                 downackhandled = 'handled';
                                 marker_icon = 'plug';
+                                worstStateHandled = 10;
                             }
                             if ( data['hosts_down_handled'] > 0 ) {
                                info += '<span class="state-ball ball-size-l state-down handled">' + downack + '</span>';
@@ -491,7 +502,7 @@
                             
                         }
 
-                        icon = colorMarker(worstState, marker_icon);
+                        icon = colorMarker(worstState + worstStateHandled, marker_icon);
 
                         var marker;
 
