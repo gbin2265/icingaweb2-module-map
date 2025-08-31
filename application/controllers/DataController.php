@@ -260,6 +260,8 @@ class DataController extends MapController
                 'vars.map_icon',
                 'hosts_down_handled'          => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 1 AND (host_state.is_handled = \'y\' OR host_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
                 'hosts_down_unhandled'        => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 1 AND host_state.is_handled = \'n\' AND host_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
+                'hosts_is_acknowledged'       => new Expression('SUM(CASE WHEN host_state.is_acknowledged = \'y\' THEN 1 ELSE 0 END)'),
+                'hosts_in_downtime'           => new Expression('SUM(CASE WHEN host_state.in_downtime = \'y\' THEN 1 ELSE 0 END)'),
                 'hosts_pending'               => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 99 THEN 1 ELSE 0 END)'),
                 'hosts_total'                 => new Expression('SUM(CASE WHEN host.id IS NOT NULL THEN 1 ELSE 0 END)'),
                 'hosts_up'                    => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 0 THEN 1 ELSE 0 END)'),
@@ -309,12 +311,14 @@ class DataController extends MapController
 
                 $host['coordinates'] = explode(",", $host['coordinates']);
 
-                if ( $row->hosts_down_unhandled > 0 ) { $host['host_state'] = 1; } else { $host['host_state'] = 0; };
-                if ( $row->hosts_down_handled > 0 )   { $host['host_in_downtime'] = 1; $host['hosts_down_handled'] = 1; } else { $host['host_in_downtime'] = 0; $host['hosts_down_handled'] = 0; };
-                if ( $row->hosts_down_unhandled > 0 ) { $host['hosts_down_unhandled'] = 1; } else { $host['hosts_down_unhandled'] = 0; };
-                if ( $row->hosts_pending > 0 )        { $host['hosts_pending'] = 1; } else { $host['hosts_pending'] = 0; };
-                if ( $row->hosts_total > 0 )          { $host['hosts_total'] = 1; } else { $host['hosts_total'] = 0; };
-                if ( $row->hosts_up > 0 )             { $host['hosts_up'] = 1; } else { $host['hosts_up'] = 0; };
+                if ( $row->hosts_down_unhandled > 0 )  { $host['host_state'] = 1; } else { $host['host_state'] = 0; };
+                if ( $row->hosts_down_handled > 0 )    { $host['host_in_downtime'] = 1; $host['hosts_down_handled'] = 1; } else { $host['host_in_downtime'] = 0; $host['hosts_down_handled'] = 0; };
+                if ( $row->hosts_down_unhandled > 0 )  { $host['hosts_down_unhandled'] = 1; } else { $host['hosts_down_unhandled'] = 0; };
+                if ( $row->hosts_is_acknowledged > 0 ) { $host['hosts_is_acknowledged'] = 1; } else { $host['hosts_is_acknowledged'] = 0; };
+                if ( $row->hosts_in_downtime > 0 )     { $host['hosts_in_downtime'] = 1; } else { $host['hosts_in_downtime'] = 0; };
+                if ( $row->hosts_pending > 0 )         { $host['hosts_pending'] = 1; } else { $host['hosts_pending'] = 0; };
+                if ( $row->hosts_total > 0 )           { $host['hosts_total'] = 1; } else { $host['hosts_total'] = 0; };
+                if ( $row->hosts_up > 0 )              { $host['hosts_up'] = 1; } else { $host['hosts_up'] = 0; };
 
                 $host['services_critical_handled'] = $row->services_critical_handled;
                 $host['services_critical_unhandled'] = $row->services_critical_unhandled;
