@@ -124,6 +124,20 @@ class GeneralConfigForm extends ConfigForm
             )
         );
         $this->addElement(
+            'select',
+            'map_objectType',
+            array(
+                'label' => $this->translate('Object type'),
+                'description' => $this->translate('Object type for map'),
+                'multiOptions' => array(
+                    'all' => 'all',
+                    'host' => 'host',
+                    'service' => 'service',
+                    'icingadbweb' => 'icingadbweb'
+                ),
+            )
+        );
+        $this->addElement(
             'text',
             'map_disable_cluster_at_zoom',
             array(
