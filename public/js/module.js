@@ -249,7 +249,7 @@
             this.timer = this.module.icinga.timer.register(
                 this.updateAllMapData,
                 this,
-                0
+                60000
             );
             return this;
         },
