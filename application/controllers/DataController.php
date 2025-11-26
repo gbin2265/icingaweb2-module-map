@@ -275,8 +275,8 @@ class DataController extends MapController
                 'services_warning_handled'    => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 1 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
                 'services_warning_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 1 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)')
 	    ])
-            ->filter(IplFilter::like('host.vars.geolocation', '*'))
-            ->setResultSetClass(VolatileStateResults::class);
+            ->filter(IplFilter::like('host.vars.geolocation', '*'));
+#            ->setResultSetClass(VolatileStateResults::class);
 
         $hostQuery 
            ->getSelectBase()
