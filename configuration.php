@@ -1,14 +1,18 @@
 <?php
-$section = $this->menuSection(N_('Maps'), array('icon' => 'globe'));
 
-$mapModule = $section->add(N_($this->translate('Default map')), array(
-    'icon' => 'globe',
+declare(strict_types=1);
+
+// Menu section
+$section = $this->menuSection(N_('Maps'), ['icon' => 'globe']);
+
+$section->add(N_($this->translate('Default map')), [
+    'icon'        => 'globe',
     'description' => $this->translate('Visualize your hosts and services on a map'),
-    'url' => 'map',
-    'priority' => 10
-));
+    'url'         => 'map',
+    'priority'    => 10
+]);
 
-// stylesheets
+// Stylesheets
 $this->provideCssFile('vendor/leaflet.css');
 $this->provideCssFile('vendor/MarkerCluster.css');
 $this->provideCssFile('vendor/MarkerCluster.Default.css');
@@ -19,7 +23,7 @@ $this->provideCssFile('vendor/leaflet.modal.css');
 $this->provideCssFile('vendor/L.Control.OpenCageData.Search.min.css');
 $this->provideCssFile('vendor/spin.css');
 
-// javascript libraries
+// JavaScript libraries
 $this->provideJsFile('vendor/spin.js');
 $this->provideJsFile('vendor/leaflet.js');
 $this->provideJsFile('vendor/leaflet.spin.js');
@@ -30,19 +34,19 @@ $this->provideJsFile('vendor/leaflet.awesome-markers.js');
 $this->provideJsFile('vendor/Leaflet.Modal.js');
 $this->provideJsFile('vendor/L.Control.OpenCageSearch.js');
 
-// configuration menu
-$this->provideConfigTab('config', array(
+// Configuration tabs
+$this->provideConfigTab('config', [
     'title' => $this->translate('Configure the map module'),
     'label' => $this->translate('Configuration'),
-    'url' => 'config'
-));
+    'url'   => 'config'
+]);
 
-if ($this->app->getModuleManager()->hasEnabled("mapDatatype") && $this->app->getModuleManager()->hasEnabled("director")) {
-
-    $this->provideConfigTab('director', array(
+// Director integration (optional)
+$moduleManager = $this->app->getModuleManager();
+if ($moduleManager->hasEnabled('mapDatatype') && $moduleManager->hasEnabled('director')) {
+    $this->provideConfigTab('director', [
         'title' => $this->translate('Configure the director map datatype'),
         'label' => $this->translate('Director'),
-        'url' => 'config/director'
-    ));
-
+        'url'   => 'config/director'
+    ]);
 }

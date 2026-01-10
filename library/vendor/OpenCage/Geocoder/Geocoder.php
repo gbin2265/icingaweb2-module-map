@@ -1,29 +1,43 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OpenCage\Geocoder;
 
-use OpenCage\Geocoder\AbstractGeocoder;
+use InvalidArgumentException;
 
-class Geocoder extends AbstractGeocoder
+final class Geocoder extends AbstractGeocoder
 {
-    public function geocode($query, $optParams = [])
+    public function geocode(string $query, array $params = []): ?array
     {
-        $url = self::URL . 'q=' . urlencode($query);
-        
-        if(is_array($optParams) && !empty($optParams))
-        {
-            foreach($optParams as $param => $paramValue)
-            {
-                $url .= '&'.$param.'=' . urlencode($paramValue);
-            }
+        if ($this->key === null || $this->key === '') {
+            throw new InvalidArgumentException('Missing API key');
         }
-        
-        if (empty($this->key)) {
-            throw new \Exception('Missing API key');
-        }
-        $url .= '&key=' . $this->key;
 
-        $ret = json_decode($this->getJSON($url), true);
-        return $ret;
+        if ($query === '') {
+            return null;
+        }
+
+        $url = $this->buildUrl($query, $params);
+        $response = $this->fetchJson($url);
+
+        if ($response === null) {
+            return null;
+        }
+
+        $decoded = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+        
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function buildUrl(string $query, array $params): string
+    {
+        $queryParams = array_merge(
+            ['q' => $query],
+            $params,
+            ['key' => $this->key]
+        );
+
+        return self::API_URL . http_build_query($queryParams);
     }
 }

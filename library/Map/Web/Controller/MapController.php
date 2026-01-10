@@ -1,32 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Icinga\Module\Map\Web\Controller;
 
-use Icinga\Application\Modules\Module;
-use Icinga\Module\Map\ProvidedHook\Icingadb\IcingadbSupport;
 use Icinga\Module\Map\Util\IcingadbUtils;
-use Icinga\Module\Monitoring\Controller;
+use ipl\Web\Compat\CompatController;
 
-abstract class MapController extends Controller
+abstract class MapController extends CompatController
 {
-    /** @var bool whether icingadb is set as backend */
-    protected $isUsingIcingadb;
+    protected IcingadbUtils $icingadbUtils;
 
-    /** @var IcingadbUtils provide required icingadb utils */
-    protected $icingadbUtils;
+    /** @var string Regex pattern for validating coordinates (lat,lng format) */
+    protected const COORDINATE_PATTERN = '/^(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)$/';
 
-    /** @var string Pattern to check for broken coordinates */
-    protected $coordinatePattern = '/^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$/';
+    /** For backwards compatibility */
+    protected string $coordinatePattern = self::COORDINATE_PATTERN;
 
-    protected function moduleInit()
+    public function init(): void
     {
-        if (Module::exists('icingadb') && IcingadbSupport::useIcingaDbAsBackend()) {
-            $this->isUsingIcingadb = true;
-            $this->icingadbUtils = IcingadbUtils::getInstance();
-
-            return;
-        }
-
-        parent::moduleInit();
+        parent::init();
+        $this->icingadbUtils = IcingadbUtils::getInstance();
     }
 }

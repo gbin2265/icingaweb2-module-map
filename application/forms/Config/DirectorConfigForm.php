@@ -1,95 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Icinga\Module\Map\Forms\Config;
 
 use Icinga\Forms\ConfigForm;
 
-class DirectorConfigForm extends ConfigForm
+final class DirectorConfigForm extends ConfigForm
 {
-    /**
-     * Initialize this form
-     */
-    public function init()
+    private const PLACEHOLDER = '(use map modules configuration)';
+
+    private const FIELDS = [
+        'director_default_lat'      => ['Default latitude (WGS84)', 'Default map position (latitude)'],
+        'director_default_long'     => ['Default longitude (WGS84)', 'Default map position (longitude)'],
+        'director_default_zoom'     => ['Default zoom level', 'Default zoom level of the map'],
+        'director_max_zoom'         => ['Maximum zoom level', 'Maximum zoom level of the map'],
+        'director_max_native_zoom'  => ['Maximum native zoom level', 'Maximum zoom level natively supported by the map'],
+        'director_min_zoom'         => ['Minimal zoom level', 'Minimal zoom level of the map'],
+        'director_tile_url'         => ['URL for tile server', 'Escaped server url, for leaflet tilelayer'],
+    ];
+
+    public function init(): void
     {
         $this->setName('form_config_director');
         $this->setSubmitLabel($this->translate('Save Changes'));
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function createElements(array $formData)
+    public function createElements(array $formData): void
     {
-        $this->addElement(
-            'text',
-            'director_default_lat',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('Default latitude (WGS84)'),
-                'description' => $this->translate('Default map position (latitude)'),
-                'required' => false
-            )
-        );
-        $this->addElement(
-            'text',
-            'director_default_long',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('Default longitude (WGS84)'),
-                'description' => $this->translate('Default map position (longitude)'),
-                'required' => false
-            )
-        );
-        $this->addElement(
-            'text',
-            'director_default_zoom',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('Default zoom level'),
-                'description' => $this->translate('Default zoom level of the map'),
-                'required' => false
-            )
-        );
-        $this->addElement(
-            'text',
-            'director_max_zoom',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('Maximum zoom level'),
-                'description' => $this->translate('Maximum zoom level of the map'),
-                'required' => false
-            )
-        );
-        $this->addElement(
-            'text',
-            'director_max_native_zoom',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('Maximum native zoom level '),
-                'description' => $this->translate('Maximum zoom level natively supported by the map'),
-                'required' => false
-            )
-        );
-        $this->addElement(
-            'text',
-            'director_min_zoom',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('Minimal zoom level'),
-                'description' => $this->translate('Minimal zoom level of the map'),
-                'required' => false
-            )
-        );
-        $this->addElement(
-            'text',
-            'director_tile_url',
-            array(
-                'placeholder' => '(use map modules configuration)',
-                'label' => $this->translate('URL for tile server'),
-                'description' => $this->translate('Escaped server url, for leaflet tilelayer'),
-                'required' => false,
-            )
-        );
+        foreach (self::FIELDS as $name => [$label, $description]) {
+            $this->addElement('text', $name, [
+                'placeholder' => self::PLACEHOLDER,
+                'label'       => $this->translate($label),
+                'description' => $this->translate($description),
+                'required'    => false
+            ]);
+        }
     }
 }
-

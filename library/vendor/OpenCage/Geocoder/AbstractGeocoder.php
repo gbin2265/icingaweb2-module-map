@@ -1,74 +1,90 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OpenCage\Geocoder;
+
+use RuntimeException;
 
 abstract class AbstractGeocoder
 {
-    const TIMEOUT = 10;
-    const URL = 'https://api.opencagedata.com/geocode/v1/json/?';
+    private const DEFAULT_TIMEOUT = 10;
+    protected const API_URL = 'https://api.opencagedata.com/geocode/v1/json?';
 
-    protected $key;
-    protected $timeout;
-    protected $url;
+    protected ?string $key = null;
+    protected int $timeout = self::DEFAULT_TIMEOUT;
 
-    public function __construct($key = null)
+    public function __construct(?string $key = null)
     {
-        if (isset($key) && !empty($key)) {
-            $this->setKey($key);
+        if ($key !== null && $key !== '') {
+            $this->key = $key;
         }
-        $this->setTimeout(self::TIMEOUT);
     }
 
-    public function setKey($key)
+    public function setKey(string $key): self
     {
         $this->key = $key;
+        return $this;
     }
 
-    public function setTimeout($timeout)
+    public function setTimeout(int $timeout): self
     {
         $this->timeout = $timeout;
+        return $this;
     }
 
-    protected function getJSON($query)
+    protected function fetchJson(string $url): ?string
     {
         if (function_exists('curl_version')) {
-            $ret = $this->getJSONByCurl($query);
-            return $ret;
-        } elseif (ini_get('allow_url_fopen')) {
-            $ret = $this->getJSONByFopen($query);
-            return $ret;
-        } else {
-            throw new \Exception('PHP is not compiled with CURL support and allow_url_fopen is disabled; giving up');
+            return $this->fetchWithCurl($url);
         }
-    }
 
-    protected function getJSONByFopen($query)
-    {
-        $context = stream_context_create(
-            [
-                'http' => [
-                    'timeout' => $this->timeout
-                ]
-            ]
+        if (ini_get('allow_url_fopen')) {
+            return $this->fetchWithFopen($url);
+        }
+
+        throw new RuntimeException(
+            'PHP is not compiled with CURL support and allow_url_fopen is disabled'
         );
-
-        $ret =  file_get_contents($query);
-        return $ret;
     }
 
-    protected function getJSONByCurl($query)
+    private function fetchWithFopen(string $url): ?string
+    {
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => $this->timeout,
+                'ignore_errors' => true
+            ]
+        ]);
+
+        $result = @file_get_contents($url, false, $context);
+        
+        return $result !== false ? $result : null;
+    }
+
+    private function fetchWithCurl(string $url): ?string
     {
         $ch = curl_init();
-        $options = [
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_URL => $query,
-            CURLOPT_RETURNTRANSFER => 1
-        ];
-        curl_setopt_array($ch, $options);
+        
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => $this->timeout,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 3,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
 
-        $ret = curl_exec($ch);
-        return $ret;
+        $result = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($result === false) {
+            return null;
+        }
+
+        return $result;
     }
 
-    abstract public function geocode($query);
+    abstract public function geocode(string $query, array $params = []): ?array;
 }
