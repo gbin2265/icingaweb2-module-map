@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Icinga\Module\Map\Controllers;
 
+use Icinga\Application\Logger;
 use Icinga\Module\Icingadb\Model\Host;
 use Icinga\Module\Map\Web\Controller\MapController;
 use ipl\Stdlib\Filter as IplFilter;
@@ -26,10 +27,14 @@ final class DataController extends MapController
             $this->initializeParameters();
             $this->addIcingadbWebToPoints();
         } catch (\Exception $e) {
-            $this->points = [
-                'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString()
-            ];
+            Logger::error('Map module: %s', $e);
+
+            $this->points = ['message' => $e->getMessage()];
+
+            // Only expose the stack trace when debug logging is enabled
+            if (Logger::getInstance()->getLevel() === Logger::DEBUG) {
+                $this->points['trace'] = $e->getTraceAsString();
+            }
         }
 
         $this->outputJson($this->points);
@@ -43,7 +48,12 @@ final class DataController extends MapController
         ));
 
         $userPreferences = $this->Auth()->getUser()->getPreferences();
-        $stateType = $userPreferences->getValue('map', 'stateType', $stateType);
+        $stateType = strtolower($userPreferences->getValue('map', 'stateType', $stateType));
+
+        // Whitelist: only 'hard' and 'soft' are valid state types
+        if (!in_array($stateType, ['hard', 'soft'], true)) {
+            $stateType = 'soft';
+        }
 
         $this->params->shift('objectType');
         $this->onlyProblems = (bool) $this->params->shift('problems', false);
@@ -105,7 +115,7 @@ final class DataController extends MapController
             'hosts_is_acknowledged'       => new Expression("SUM(CASE WHEN host_state.is_acknowledged = 'y' THEN 1 ELSE 0 END)"),
             'hosts_in_downtime'           => new Expression("SUM(CASE WHEN host_state.in_downtime = 'y' THEN 1 ELSE 0 END)"),
             'hosts_pending'               => new Expression("SUM(CASE WHEN host_state.{$col} = 99 THEN 1 ELSE 0 END)"),
-            'hosts_total'                 => new Expression("SUM(CASE WHEN host.id IS NOT NULL THEN 1 ELSE 0 END)"),
+            'hosts_total'                 => new Expression("COUNT(DISTINCT host.id)"),
             'hosts_up'                    => new Expression("SUM(CASE WHEN host_state.{$col} = 0 THEN 1 ELSE 0 END)"),
             'services_critical_handled'   => new Expression("SUM(CASE WHEN host_service_state.{$col} = 2 AND (host_service_state.is_handled = 'y' OR host_service_state.is_reachable = 'n') THEN 1 ELSE 0 END)"),
             'services_critical_unhandled' => new Expression("SUM(CASE WHEN host_service_state.{$col} = 2 AND host_service_state.is_handled = 'n' AND host_service_state.is_reachable = 'y' THEN 1 ELSE 0 END)"),
@@ -187,8 +197,11 @@ final class DataController extends MapController
 
     private function outputJson(array $data): never
     {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_THROW_ON_ERROR);
+        $response = $this->getResponse();
+        $response->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+        $response->setHeader('Cache-Control', 'no-store', true);
+        $response->setBody(json_encode($data, JSON_THROW_ON_ERROR));
+        $response->sendResponse();
         exit();
     }
 }

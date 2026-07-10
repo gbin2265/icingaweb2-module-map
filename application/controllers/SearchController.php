@@ -132,8 +132,20 @@ final class SearchController extends MapController
 
     private function outputJsonp(string $callback, array $data): never
     {
-        header('Content-Type: application/javascript; charset=utf-8');
-        echo $callback . '(' . json_encode($data, JSON_THROW_ON_ERROR) . ');';
+        $json = json_encode($data, JSON_THROW_ON_ERROR);
+        $response = $this->getResponse();
+        $response->setHeader('Cache-Control', 'no-store', true);
+
+        // Only allow safe JSONP callback names to prevent XSS via the jsonp parameter
+        if ($callback !== '' && preg_match('/^[A-Za-z_$][A-Za-z0-9_$.]*$/', $callback)) {
+            $response->setHeader('Content-Type', 'application/javascript; charset=utf-8', true);
+            $response->setBody($callback . '(' . $json . ');');
+        } else {
+            $response->setHeader('Content-Type', 'application/json; charset=utf-8', true);
+            $response->setBody($json);
+        }
+
+        $response->sendResponse();
         exit();
     }
 }
