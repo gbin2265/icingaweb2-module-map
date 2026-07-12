@@ -1,5 +1,5 @@
 Module: map
-Version: 2.14.20260710
+Version: 2.14.20260711
 Requires:
   Modules: icingadb (>=1.1.0)
 Description: Map - Visualize your hosts and service status
