@@ -121,7 +121,8 @@ class IndexController extends CompatController
                     'btn-fullscreen'    => $this->translate('Fullscreen'),
                     'btn-default'       => $this->translate('Show default view'),
                     'btn-locate'        => $this->translate('Show current location'),
-                    'host-down'         => $this->translate('Host is down')
+                    'host-down'         => $this->translate('Host is down'),
+                    'services'          => $this->translate('Services')
                 ],
             ])
         ])));
