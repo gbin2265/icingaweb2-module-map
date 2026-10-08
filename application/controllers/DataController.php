@@ -254,108 +254,126 @@ class DataController extends MapController
 
     private function addIcingadbWebToPoints()
     {
-        $hostQuery = Host::on($this->icingadbUtils->getDb())
-            ->with(['host.state', 'service', 'service.state'])
+        $db = $this->icingadbUtils->getDb();
+
+        $hostQuery = Host::on($db)
             ->columns([
-                'host.id',
-                'host.name',
-                'host.display_name',
+                'id',
+                'name',
+                'display_name',
                 'vars.geolocation',
                 'vars.map_icon',
-                'hosts_down_handled'          => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 1 AND (host_state.is_handled = \'y\' OR host_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'hosts_down_unhandled'        => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 1 AND host_state.is_handled = \'n\' AND host_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
-                'hosts_is_acknowledged'       => new Expression('SUM(CASE WHEN host_state.is_acknowledged = \'y\' THEN 1 ELSE 0 END)'),
-                'hosts_in_downtime'           => new Expression('SUM(CASE WHEN host_state.in_downtime = \'y\' THEN 1 ELSE 0 END)'),
-                'hosts_pending'               => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 99 THEN 1 ELSE 0 END)'),
-                'hosts_total'                 => new Expression('SUM(CASE WHEN host.id IS NOT NULL THEN 1 ELSE 0 END)'),
-                'hosts_up'                    => new Expression('SUM(CASE WHEN host_state.' . $this->stateColumn . ' = 0 THEN 1 ELSE 0 END)'),
-                'services_critical_handled'   => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 2 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'services_critical_unhandled' => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 2 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
-                'services_ok'                 => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 0 THEN 1 ELSE 0 END)'),
-                'services_pending'            => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 99 THEN 1 ELSE 0 END)'),
-                'services_total'              => new Expression('SUM(CASE WHEN service_id IS NOT NULL THEN 1 ELSE 0 END)'),
-                'services_unknown_handled'    => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 3 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'services_unknown_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 3 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)'),
-                'services_warning_handled'    => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 1 AND (host_service_state.is_handled = \'y\' OR host_service_state.is_reachable = \'n\') THEN 1 ELSE 0 END)'),
-                'services_warning_unhandled'  => new Expression('SUM(CASE WHEN host_service_state.' . $this->stateColumn . ' = 1 AND host_service_state.is_handled = \'n\' AND host_service_state.is_reachable = \'y\' THEN 1 ELSE 0 END)')
-        ])
+                'state.hard_state',
+                'state.soft_state',
+                'state.last_state_change',
+                'state.is_acknowledged',
+                'state.in_downtime',
+                'state.is_handled',
+            ])
             ->filter(IplFilter::like('host.vars.geolocation', '*'))
             ->setResultSetClass(VolatileStateResults::class);
 
-        $hostQuery
-           ->getSelectBase()
-           ->groupBy(['host.id','host.name','host.display_name','host_vars_geolocation','host_vars_map_icon']);
-
         if ($this->filter) {
-            $hostQuery->Filter($this->filter);
+            $hostQuery->filter($this->filter);
         }
 
         if ($this->onlyProblems) {
-            $hostQuery->Filter(IplFilter::equal('service.state.is_problem', 'y'));
+            $hostQuery->filter(IplFilter::any(
+                IplFilter::equal('state.is_problem', 'y'),
+                IplFilter::equal('service.state.is_problem', 'y')
+            ));
         }
 
         $this->icingadbUtils->applyRestrictions($hostQuery);
 
-        $hostQuery = $hostQuery->execute();
-        if (! $hostQuery->hasResult()) {
-            return;
-        }
-
+        $hosts = [];
         foreach ($hostQuery as $row) {
             if (! preg_match($this->coordinatePattern, $row->vars['geolocation'])) {
                 continue;
             }
 
-            $hostname = $row->name;
-            if (! isset($this->points['hosts'][$hostname])) {
-                $host['host_name']                  = $row->name;
-                $host['host_display_name']          = $row->display_name;
-                $host['coordinates']                = $row->vars['geolocation'];
-                $host['icon']                       = $row->vars['map_icon'] ?? null;
+            $host = $this->populateObjectColumnsToArray($row);
+            $host['host_handled'] = $row->state->is_handled ? 1 : 0;
+            $host['coordinates'] = explode(",", $row->vars['geolocation']);
+            $host['icon'] = $row->vars['map_icon'] ?? null;
+            $host['services'] = [];
+            $host['service_summary'] = [
+                'state_column'       => $this->stateColumn,
+                'total'              => 0,
+                'ok'                 => 0,
+                'pending'            => 0,
+                'critical_unhandled' => 0,
+                'critical_handled'   => 0,
+                'warning_unhandled'  => 0,
+                'warning_handled'    => 0,
+                'unknown_unhandled'  => 0,
+                'unknown_handled'    => 0,
+            ];
 
-                $host['coordinates'] = explode(",", $host['coordinates']);
+            $hosts[$row->id] = $host;
+        }
 
-                if ( $row->hosts_down_unhandled > 0 )  { $host['host_state'] = 1; } else { $host['host_state'] = 0; };
-                if ( $row->hosts_down_handled > 0 )    { $host['host_in_downtime'] = 1; $host['hosts_down_handled'] = 1; } else { $host['host_in_downtime'] = 0; $host['hosts_down_handled'] = 0; };
-                if ( $row->hosts_down_unhandled > 0 )  { $host['hosts_down_unhandled'] = 1; } else { $host['hosts_down_unhandled'] = 0; };
-                if ( $row->hosts_is_acknowledged > 0 ) { $host['hosts_is_acknowledged'] = 1; } else { $host['hosts_is_acknowledged'] = 0; };
-                if ( $row->hosts_in_downtime > 0 )     { $host['hosts_in_downtime'] = 1; } else { $host['hosts_in_downtime'] = 0; };
-                if ( $row->hosts_pending > 0 )         { $host['hosts_pending'] = 1; } else { $host['hosts_pending'] = 0; };
-                if ( $row->hosts_total > 0 )           { $host['hosts_total'] = 1; } else { $host['hosts_total'] = 0; };
-                if ( $row->hosts_up > 0 )              { $host['hosts_up'] = 1; } else { $host['hosts_up'] = 0; };
+        if (empty($hosts)) {
+            return;
+        }
 
-                $host['services_critical_handled'] = $row->services_critical_handled;
-                $host['services_critical_unhandled'] = $row->services_critical_unhandled;
-                $host['services_ok'] = $row->services_ok;
-                $host['services_pending'] = $row->services_pending;
-                $host['services_total'] = $row->services_total;
-                $host['services_unknown_handled'] = $row->services_unknown_handled;
-                $host['services_unknown_unhandled'] = $row->services_unknown_unhandled;
-                $host['services_warning_handled'] = $row->services_warning_handled;
-                $host['services_warning_unhandled'] = $row->services_warning_unhandled;
+        // Count services in SQL, fetching one row per service does not scale
+        $state = 'state.' . $this->stateColumn;
+        $count = function (string $condition, string ...$columns) {
+            return new Expression("SUM(CASE WHEN $condition THEN 1 ELSE 0 END)", $columns);
+        };
 
-                if ( $row->hosts_down_unhandled > 0 ) {
-                    $host['host_state_service'] = 2;
-                } elseif ( $row->hosts_down_handled > 0 ) {
-                    $host['host_state_service'] = 2;
-                } elseif ( $row->hosts_pending > 0 ) {
-                    $host['host_state_service'] = 99;
-                } elseif ( $row->services_critical_unhandled > 0 ) {
-                    $host['host_state_service'] = 2;
-                } elseif ( $row->services_warning_unhandled > 0 ) {
-                    $host['host_state_service'] = 1;
-                } elseif ( $row->services_unknown_unhandled > 0 ) {
-                    $host['host_state_service'] = 3;
-                } elseif ( $row->services_pending > 0 ) {
-                    $host['host_state_service'] = 99;
-                } else {
-                    $host['host_state_service'] = 0;
-                }
+        $columns = [
+            'host_id',
+            'total'   => new Expression('COUNT(*)'),
+            'ok'      => $count('%s = 0', $state),
+            'pending' => $count('%s = 99', $state),
+        ];
+        foreach (['critical' => 2, 'warning' => 1, 'unknown' => 3] as $name => $value) {
+            $columns["{$name}_unhandled"] = $count(
+                "%s = $value AND %s = 'n' AND %s = 'y'",
+                $state,
+                'state.is_handled',
+                'state.is_reachable'
+            );
+            $columns["{$name}_handled"] = $count(
+                "%s = $value AND (%s = 'y' OR %s = 'n')",
+                $state,
+                'state.is_handled',
+                'state.is_reachable'
+            );
+        }
 
-                $host['services'] = [];
+        $summaryQuery = Service::on($db)
+            ->columns($columns)
+            ->filter(IplFilter::like('host.vars.geolocation', '*'))
+            ->disableDefaultSort();
 
-                $this->points['hosts'][$row->name] = $host;
+        if ($this->filter) {
+            $summaryQuery->filter($this->filter);
+        }
+
+        if ($this->onlyProblems) {
+            $summaryQuery->filter(IplFilter::equal('service.state.is_problem', 'y'));
+        }
+
+        $this->icingadbUtils->applyRestrictions($summaryQuery);
+        $summaryQuery->getSelectBase()->groupBy('service.host_id');
+
+        foreach ($summaryQuery as $row) {
+            if (! isset($hosts[$row->host_id])) {
+                continue;
             }
+
+            foreach ($columns as $alias => $column) {
+                if (is_string($alias)) {
+                    $hosts[$row->host_id]['service_summary'][$alias] = (int) $row->$alias;
+                }
+            }
+        }
+
+        foreach ($hosts as $host) {
+            $this->points['hosts'][$host['host_name']] = $host;
         }
     }
 
