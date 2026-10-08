@@ -128,7 +128,10 @@ class GeneralConfigForm extends ConfigForm
             'map_objectType',
             array(
                 'label' => $this->translate('Object type'),
-                'description' => $this->translate('Object type for map'),
+                'description' => $this->translate(
+                    'Object types shown on the map. icingadbweb shows one summary marker per host'
+                    . ' and requires IcingaDB, the map falls back to all otherwise'
+                ),
                 'multiOptions' => array(
                     'all' => 'all',
                     'host' => 'host',

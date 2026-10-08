@@ -77,26 +77,30 @@ class DataController extends MapController
                 }
             }
 
-            if (in_array($objectType, ['icingadbweb']) && $this->isUsingIcingadb) {
-                $this->addIcingadbWebToPoints();
-            } else {
-                if (in_array($objectType, ['all', 'host'])) {
-                    if ($this->isUsingIcingadb) {
-                        $this->addIcingadbHostsToPoints();
-                    } else {
-                        $this->addHostsToPoints();
-                    }
-                }
+            if ($objectType === 'icingadbweb' && ! $this->isUsingIcingadb) {
+                // The summary needs IcingaDB, show everything rather than an empty map
+                $objectType = 'all';
+            }
 
-                if (in_array($objectType, ['all', 'service'])) {
-                    if ($this->isUsingIcingadb) {
-                        $this->addIcingadbServicesToPoints();
-                    } else {
-                        $this->addServicesToPoints();
-                    }
+            if ($objectType === 'icingadbweb') {
+                $this->addIcingadbWebToPoints();
+            }
+
+            if (in_array($objectType, ['all', 'host'])) {
+                if ($this->isUsingIcingadb) {
+                    $this->addIcingadbHostsToPoints();
+                } else {
+                    $this->addHostsToPoints();
                 }
             }
 
+            if (in_array($objectType, ['all', 'service'])) {
+                if ($this->isUsingIcingadb) {
+                   $this->addIcingadbServicesToPoints();
+                } else {
+                    $this->addServicesToPoints();
+                }
+            }
         } catch (\Exception $e) {
             $this->points['message'] = $e->getMessage();
             $this->points['trace'] = $e->getTraceAsString();
